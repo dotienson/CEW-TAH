@@ -18,7 +18,6 @@ import { Copy, ChevronDown, ChevronUp, Info, TrendingUp, TrendingDown, Minus } f
 
 export default function App() {
   const [gender, setGender] = useState<'male' | 'female'>('male');
-  const [name, setName] = useState('');
   const [dobD, setDobD] = useState('');
   const [dobM, setDobM] = useState('');
   const [dobY, setDobY] = useState('');
@@ -157,6 +156,38 @@ export default function App() {
 
   const bpEval = useMemo(() => evaluateBP(sbp, dbp, finalAge.years, gender), [sbp, dbp, finalAge.years, gender]);
 
+  // Diabetes Status
+  const diabetesStatus = useMemo(() => {
+    if (!fg && !hba1c) return null;
+    
+    let fgMmol = null;
+    if (fg) {
+      fgMmol = fgUnit === 'mg/dL' ? Number(fg) / 18 : Number(fg);
+    }
+    
+    let hba1cPercent = null;
+    if (hba1c) {
+      hba1cPercent = hba1cUnit === 'mmol/mol' ? (Number(hba1c) / 10.929) + 2.15 : Number(hba1c);
+    }
+
+    let isDiabetes = false;
+    let isPrediabetes = false;
+
+    if ((fgMmol !== null && fgMmol >= 7.0) || (hba1cPercent !== null && hba1cPercent >= 6.5)) {
+      isDiabetes = true;
+    } else if ((fgMmol !== null && fgMmol >= 5.6 && fgMmol < 7.0) || (hba1cPercent !== null && hba1cPercent >= 5.7 && hba1cPercent < 6.5)) {
+      isPrediabetes = true;
+    }
+
+    if (isDiabetes) return { status: 'Đái tháo đường', color: 'text-red-600', desc: 'Đường huyết hoặc HbA1c ở mức đái tháo đường.' };
+    if (isPrediabetes) return { status: 'Tiền đái tháo đường', color: 'text-yellow-600', desc: 'Đường huyết hoặc HbA1c ở mức tiền đái tháo đường.' };
+    
+    if (fgMmol !== null || hba1cPercent !== null) {
+      return { status: 'Bình thường', color: 'text-green-600', desc: 'Đường huyết và HbA1c trong giới hạn bình thường.' };
+    }
+    return null;
+  }, [fg, fgUnit, hba1c, hba1cUnit]);
+
   // Insulin Resistance Status
   const irStatus = useMemo(() => {
     if (!homaIr || !quicki) return null;
@@ -220,7 +251,8 @@ export default function App() {
     const waistStr = waist ? `${waist} cm` : '...';
     
     let indices = [];
-    if (homaIr) indices.push(`HOMA-IR = ${homaIr} (${Number(homaIr) > 2.5 ? '> 2.5' : '< 2.5'})`);
+    const homaIrCutoff = tanner === 'prepubertal' ? 2.5 : 3.16;
+    if (homaIr) indices.push(`HOMA-IR = ${homaIr} (${Number(homaIr) > homaIrCutoff ? `> ${homaIrCutoff}` : `< ${homaIrCutoff}`})`);
     if (quicki) indices.push(`QUICKI = ${quicki} (${Number(quicki) < 0.33 ? '< 0.33' : '> 0.33'})`);
     if (whtr) indices.push(`WHtR = ${whtr} (${Number(whtr) > 0.5 ? '> 0.5' : '< 0.5'})`);
     if (tgHdl) indices.push(`TG/HDL = ${tgHdl} (${Number(tgHdl) > 2.2 ? '> 2.2' : '< 2.2'})`);
@@ -230,7 +262,7 @@ export default function App() {
 
     const indicesStr = indices.length > 0 ? indices.join(', ') : 'Chưa có đủ dữ liệu';
     
-    return `Trẻ ${genderStr} ${name || '...'}, ${ageStr}, hiện có chỉ số BMI ${bmiStr}${bmiZ ? ` (Z-score: ${bmiZ})` : ''}, Vòng bụng ${waistStr}.\n\nHiện tại có các chỉ số như sau:\n${indicesStr}\n\nÝ nghĩa:\n${doctorNote || '...'}\n\nNgày khám: ${examDate}`;
+    return `Trẻ ${genderStr}, ${ageStr}, hiện có chỉ số BMI ${bmiStr}${bmiZ ? ` (Z-score: ${bmiZ})` : ''}, Vòng bụng ${waistStr}. Hiện tại có các chỉ số như sau: ${indicesStr}. Ý nghĩa: ${doctorNote || '...'}. Ngày khám: ${examDate}.`;
   };
 
   const copyToClipboard = () => {
@@ -281,8 +313,6 @@ export default function App() {
                     Nữ
                   </button>
                 </div>
-
-                <InputGroup label="Họ và tên" type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Nhập tên..." />
                 
                 <div className="col-span-1 md:col-span-2">
                   <label className="mb-1 block text-xs font-semibold text-gray-700">Tuổi (chọn 1 trong 2 cách nhập)</label>
@@ -405,9 +435,9 @@ export default function App() {
             <div className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-gray-200/60">
               <h3 className="text-md font-semibold text-gray-800 mb-3">Xét nghiệm</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <InputGroup label="Fasting Insulin (FI)" value={fi} onValueChange={setFi} unit="µU/mL" disabled={isLocked} />
+                <InputGroup label="Insulin (nhịn ăn) (FI)" value={fi} onValueChange={setFi} unit="µU/mL" disabled={isLocked} />
                 <InputGroup
-                  label="Fasting Glucose (FG)"
+                  label="Glucose lúc đói (FG)"
                   value={fg}
                   onValueChange={setFg}
                   unitOptions={['mmol/L', 'mg/dL']}
@@ -476,16 +506,64 @@ export default function App() {
                 />
               </div>
 
+              {bmiZ && (
+                <div className="mt-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                  <div className="flex justify-between items-center mb-2">
+                    <h3 className="text-sm font-semibold text-gray-700">BMI Z-Score</h3>
+                    <span className="font-bold text-lg">{bmiZ}</span>
+                  </div>
+                  <div 
+                    className="relative h-4 rounded-full overflow-hidden shadow-inner"
+                    style={{ background: 'linear-gradient(to right, #ef4444 0%, #ef4444 16.6%, #22c55e 16.6%, #22c55e 66.6%, #eab308 66.6%, #eab308 83.3%, #ef4444 83.3%, #ef4444 100%)' }}
+                  >
+                    {/* Markers */}
+                    <div className="absolute top-0 bottom-0 left-[16.6%] w-px bg-white/70"></div>
+                    <div className="absolute top-0 bottom-0 left-[33.3%] w-px bg-white/70"></div>
+                    <div className="absolute top-0 bottom-0 left-[50%] w-px bg-white/70"></div>
+                    <div className="absolute top-0 bottom-0 left-[66.6%] w-px bg-white/70"></div>
+                    <div className="absolute top-0 bottom-0 left-[83.3%] w-px bg-white/70"></div>
+                    
+                    {/* Indicator */}
+                    <div 
+                      className="absolute top-0 bottom-0 w-1.5 bg-black rounded-full shadow-md transform -translate-x-1/2 transition-all duration-500 border border-white"
+                      style={{ left: `${Math.min(Math.max(((Number(bmiZ) + 3) / 6) * 100, 0), 100)}%` }}
+                    ></div>
+                  </div>
+                  <div className="flex justify-between text-[10px] text-gray-500 mt-1 px-1 font-medium">
+                    <span>-3</span>
+                    <span>-2</span>
+                    <span>-1</span>
+                    <span>0</span>
+                    <span>1</span>
+                    <span>2</span>
+                    <span>3</span>
+                  </div>
+                </div>
+              )}
+
               {homaIr && (
                 <div className="mt-4">
                   <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Đường huyết & Kháng Insulin</h3>
+                  
+                  {diabetesStatus && (
+                    <div className="mb-4">
+                      <ResultCard 
+                        title="Tình trạng Đường huyết" 
+                        value={diabetesStatus.status} 
+                        statusColor={diabetesStatus.color} 
+                        description={diabetesStatus.desc} 
+                      />
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-3 gap-4 mb-2">
                     <div className="bg-gray-50 p-3 rounded-lg text-center flex flex-col items-center">
                       <div className="text-xs text-gray-500">HOMA-IR</div>
                       <div className="text-xl font-bold flex items-center gap-1">
                         {homaIr}
-                        {Number(homaIr) > 2.5 ? <TrendingUp className="w-4 h-4 text-red-500" /> : <Minus className="w-4 h-4 text-green-500" />}
+                        {Number(homaIr) > (tanner === 'prepubertal' ? 2.5 : 3.16) ? <TrendingUp className="w-4 h-4 text-red-500" /> : <Minus className="w-4 h-4 text-green-500" />}
                       </div>
+                      <div className="text-[10px] text-gray-400 mt-1">{tanner === 'prepubertal' ? '(> 2.5 ~ kháng insulin)' : '(> 3.16 ~ kháng insulin)'}</div>
                     </div>
                     <div className="bg-gray-50 p-3 rounded-lg text-center flex flex-col items-center">
                       <div className="text-xs text-gray-500">QUICKI</div>
@@ -493,6 +571,7 @@ export default function App() {
                         {quicki}
                         {Number(quicki) < 0.33 ? <TrendingDown className="w-4 h-4 text-red-500" /> : <Minus className="w-4 h-4 text-green-500" />}
                       </div>
+                      <div className="text-[10px] text-gray-400 mt-1">(&lt; 0.33 ~ kháng insulin)</div>
                     </div>
                     <div className="bg-gray-50 p-3 rounded-lg text-center flex flex-col items-center">
                       <div className="text-xs text-gray-500">FGIR</div>
@@ -500,6 +579,7 @@ export default function App() {
                         {fgir}
                         {Number(fgir) < 7 ? <TrendingDown className="w-4 h-4 text-red-500" /> : <Minus className="w-4 h-4 text-green-500" />}
                       </div>
+                      <div className="text-[10px] text-gray-400 mt-1">(&lt; 7 ~ kháng insulin)</div>
                     </div>
                   </div>
                   {irStatus && (
@@ -622,7 +702,7 @@ export default function App() {
             {/* CONCLUSION BOX */}
             <div className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-gray-200/60">
               <div className="flex justify-between items-center mb-3">
-                <h2 className={`text-lg font-semibold ${accentColor}`}>Kết luận tổng quát</h2>
+                <h2 className={`text-lg font-semibold ${accentColor}`}>Kết luận</h2>
                 <button
                   onClick={copyToClipboard}
                   className={`flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors shadow-sm`}
