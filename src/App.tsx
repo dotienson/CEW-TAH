@@ -70,16 +70,45 @@ export default function App() {
 
 
 
+  const handleDayChange = (setter: React.Dispatch<React.SetStateAction<string>>) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value;
+    if (val === '') { setter(''); return; }
+    let num = parseInt(val, 10);
+    if (num > 31) num = 31;
+    if (num < 0) num = 0;
+    setter(num.toString());
+  };
+
+  const handleMonthChange = (setter: React.Dispatch<React.SetStateAction<string>>) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value;
+    if (val === '') { setter(''); return; }
+    let num = parseInt(val, 10);
+    if (num > 12) num = 12;
+    if (num < 0) num = 0;
+    setter(num.toString());
+  };
+
+  const handleYearChange = (setter: React.Dispatch<React.SetStateAction<string>>) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value;
+    if (val === '') { setter(''); return; }
+    let num = parseInt(val, 10);
+    if (num < 0) num = 0;
+    setter(num.toString());
+  };
+
   const age = useMemo(() => calculateAge(dob, examDate), [dob, examDate]);
   const finalAge = useMemo(() => {
     if (manualYears !== '' || manualMonths !== '') {
       return {
-        years: manualYears !== '' ? Number(manualYears) : 0,
-        months: manualMonths !== '' ? Number(manualMonths) : 0
+        years: manualYears !== '' ? Number(manualYears) : '',
+        months: manualMonths !== '' ? Number(manualMonths) : ''
       };
     }
     return age;
   }, [age, manualYears, manualMonths]);
+
+  const isAgeValid = finalAge.years === '' || (Number(finalAge.years) >= 1 && Number(finalAge.years) <= 19);
+  const isLocked = !isAgeValid;
 
   const bmi = useMemo(() => calculateBMI(weight, height), [weight, height]);
 
@@ -185,23 +214,23 @@ export default function App() {
   }, [gender]);
 
   const generateConclusion = () => {
-    const ageStr = finalAge.years !== '' ? `${finalAge.years} tuổi ${finalAge.months} tháng` : 'Chưa rõ';
-    const genderStr = gender === 'male' ? 'Nam' : 'Nữ';
-    const bmiStr = bmi ? `${bmi} (Z-score: ${bmiZ || 'Chưa nhập'})` : 'Chưa nhập';
-    const waistStr = waist ? `${waist} cm` : 'Chưa nhập';
+    const ageStr = finalAge.years !== '' ? `${finalAge.years} tuổi ${finalAge.months} tháng` : '...';
+    const genderStr = gender === 'male' ? 'nam' : 'nữ';
+    const bmiStr = bmi ? `${bmi}` : '...';
+    const waistStr = waist ? `${waist} cm` : '...';
     
     let indices = [];
-    if (homaIr) indices.push(`HOMA-IR: ${homaIr}`);
-    if (quicki) indices.push(`QUICKI: ${quicki}`);
-    if (whtr) indices.push(`WHtR: ${whtr}`);
-    if (tgHdl) indices.push(`TG/HDL: ${tgHdl}`);
-    if (nonHdl) indices.push(`Non-HDL: ${nonHdl} mg/dL`);
-    if (astAlt) indices.push(`AST/ALT: ${astAlt}`);
-    if (lhFsh) indices.push(`LH/FSH: ${lhFsh}`);
+    if (homaIr) indices.push(`HOMA-IR = ${homaIr} (${Number(homaIr) > 2.5 ? '> 2.5' : '< 2.5'})`);
+    if (quicki) indices.push(`QUICKI = ${quicki} (${Number(quicki) < 0.33 ? '< 0.33' : '> 0.33'})`);
+    if (whtr) indices.push(`WHtR = ${whtr} (${Number(whtr) > 0.5 ? '> 0.5' : '< 0.5'})`);
+    if (tgHdl) indices.push(`TG/HDL = ${tgHdl} (${Number(tgHdl) > 2.2 ? '> 2.2' : '< 2.2'})`);
+    if (nonHdl) indices.push(`Non-HDL = ${nonHdl} mg/dL (${Number(nonHdl) > 145 ? '> 145' : '< 145'})`);
+    if (astAlt) indices.push(`AST/ALT = ${astAlt} (${Number(astAlt) > 1 ? '> 1' : '< 1'})`);
+    if (lhFsh) indices.push(`LH/FSH = ${lhFsh} (${Number(lhFsh) > 0.3 ? '> 0.3' : '< 0.3'})`);
 
     const indicesStr = indices.length > 0 ? indices.join(', ') : 'Chưa có đủ dữ liệu';
     
-    return `Trẻ: ${name || '...'} | Tuổi: ${ageStr} | Giới: ${genderStr}\nBMI: ${bmiStr} | Vòng bụng: ${waistStr}\n\nHiện tại có các chỉ số như sau:\n${indicesStr}\n\nÝ nghĩa (Bác sĩ đánh giá):\n${doctorNote || '...'}\n\nNgày khám: ${examDate}\nBS Phiên giải: ...`;
+    return `Trẻ ${genderStr} ${name || '...'}, ${ageStr}, hiện có chỉ số BMI ${bmiStr}${bmiZ ? ` (Z-score: ${bmiZ})` : ''}, Vòng bụng ${waistStr}.\n\nHiện tại có các chỉ số như sau:\n${indicesStr}\n\nÝ nghĩa:\n${doctorNote || '...'}\n\nNgày khám: ${examDate}`;
   };
 
   const copyToClipboard = () => {
@@ -209,7 +238,7 @@ export default function App() {
     alert('Đã copy kết luận!');
   };
 
-  const bgColor = 'bg-[#f5f5f7]';
+  const bgColor = gender === 'male' ? 'bg-[#D0D9E4]' : 'bg-[#FCE4EC]';
   const accentColor = gender === 'male' ? 'text-blue-600' : 'text-pink-600';
   const ringColor = gender === 'male' ? 'ring-blue-500' : 'ring-pink-500';
 
@@ -225,22 +254,29 @@ export default function App() {
           {/* LEFT COLUMN: INPUTS */}
           <div className="flex flex-col gap-5">
             {/* THÔNG TIN CHUNG */}
-            <div className="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200/60">
+            <div className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-gray-200/60">
               <h2 className={`text-lg font-semibold ${accentColor} mb-4 flex items-center gap-2`}>
                 <Info className="w-5 h-5" /> Thông tin chung
               </h2>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
+              {!isAgeValid && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4 text-sm" role="alert">
+                  <strong className="font-semibold">Ngoài khoảng tuổi! </strong>
+                  <span>Ứng dụng chỉ dành cho trẻ từ 1 đến 19 tuổi. Các trường nhập liệu đã bị khóa.</span>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-2">
                 <div className="col-span-1 md:col-span-2 flex gap-3 mb-1">
                   <button
                     onClick={() => setGender('male')}
-                    className={`flex-1 py-2 rounded-xl font-medium transition-all ${gender === 'male' ? 'bg-blue-500 text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                    className={`flex-1 py-1.5 rounded-xl font-medium transition-all text-sm shadow-sm ${gender === 'male' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
                   >
                     Nam
                   </button>
                   <button
                     onClick={() => setGender('female')}
-                    className={`flex-1 py-2 rounded-xl font-medium transition-all ${gender === 'female' ? 'bg-pink-500 text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                    className={`flex-1 py-1.5 rounded-xl font-medium transition-all text-sm shadow-sm ${gender === 'female' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
                   >
                     Nữ
                   </button>
@@ -249,25 +285,25 @@ export default function App() {
                 <InputGroup label="Họ và tên" type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Nhập tên..." />
                 
                 <div className="col-span-1 md:col-span-2">
-                  <label className="mb-2 block text-sm font-medium text-gray-700">Tuổi (chọn 1 trong 2 cách nhập)</label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50/50 p-4 rounded-xl border border-gray-200/60">
+                  <label className="mb-1 block text-xs font-semibold text-gray-700">Tuổi (chọn 1 trong 2 cách nhập)</label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-gray-50/50 p-3 rounded-xl border border-gray-200/60">
                     <div>
-                      <div className="flex flex-col mb-4">
+                      <div className="flex flex-col mb-3">
                         <label className="mb-1 text-xs font-medium text-gray-500 uppercase tracking-wider">Cách 1: Theo ngày sinh</label>
-                        <div className="flex gap-2 mb-3">
-                          <input type="number" value={dobD} onChange={e => setDobD(e.target.value)} placeholder="Ngày" className={`w-1/3 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:${ringColor} shadow-sm`} />
-                          <input type="number" value={dobM} onChange={e => setDobM(e.target.value)} placeholder="Tháng" className={`w-1/3 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:${ringColor} shadow-sm`} />
-                          <input type="number" value={dobY} onChange={e => setDobY(e.target.value)} placeholder="Năm" className={`w-1/3 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:${ringColor} shadow-sm`} />
+                        <div className="flex gap-2 mb-2">
+                          <input type="number" value={dobD} onChange={handleDayChange(setDobD)} placeholder="Ngày" className={`w-1/3 px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:${ringColor} shadow-sm text-sm`} />
+                          <input type="number" value={dobM} onChange={handleMonthChange(setDobM)} placeholder="Tháng" className={`w-1/3 px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:${ringColor} shadow-sm text-sm`} />
+                          <input type="number" value={dobY} onChange={handleYearChange(setDobY)} placeholder="Năm" className={`w-1/3 px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:${ringColor} shadow-sm text-sm`} />
                         </div>
                         <label className="mb-1 text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày khám</label>
                         <div className="flex gap-2">
-                          <input type="number" value={examD} onChange={e => setExamD(e.target.value)} placeholder="Ngày" className={`w-1/3 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:${ringColor} shadow-sm`} />
-                          <input type="number" value={examM} onChange={e => setExamM(e.target.value)} placeholder="Tháng" className={`w-1/3 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:${ringColor} shadow-sm`} />
-                          <input type="number" value={examY} onChange={e => setExamY(e.target.value)} placeholder="Năm" className={`w-1/3 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:${ringColor} shadow-sm`} />
+                          <input type="number" value={examD} onChange={handleDayChange(setExamD)} placeholder="Ngày" className={`w-1/3 px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:${ringColor} shadow-sm text-sm`} />
+                          <input type="number" value={examM} onChange={handleMonthChange(setExamM)} placeholder="Tháng" className={`w-1/3 px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:${ringColor} shadow-sm text-sm`} />
+                          <input type="number" value={examY} onChange={handleYearChange(setExamY)} placeholder="Năm" className={`w-1/3 px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:${ringColor} shadow-sm text-sm`} />
                         </div>
                       </div>
                     </div>
-                    <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-3">
                       <div className="flex flex-col">
                         <label className="mb-1 text-xs font-medium text-gray-500 uppercase tracking-wider">Cách 2: Nhập thủ công</label>
                         <div className="flex gap-2">
@@ -277,7 +313,7 @@ export default function App() {
                               value={manualYears}
                               onChange={e => setManualYears(e.target.value)}
                               placeholder="Tuổi"
-                              className={`w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:${ringColor} shadow-sm`}
+                              className={`w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:${ringColor} shadow-sm text-sm`}
                             />
                           </div>
                           <div className="flex-1">
@@ -286,12 +322,12 @@ export default function App() {
                               value={manualMonths}
                               onChange={e => setManualMonths(e.target.value)}
                               placeholder="Tháng"
-                              className={`w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:${ringColor} shadow-sm`}
+                              className={`w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:${ringColor} shadow-sm text-sm`}
                             />
                           </div>
                         </div>
                       </div>
-                      <div className={`flex-1 border p-4 rounded-xl flex flex-col justify-center items-center shadow-sm ${gender === 'male' ? 'bg-blue-50/50 border-blue-100' : 'bg-pink-50/50 border-pink-100'}`}>
+                      <div className={`flex-1 border p-3 rounded-xl flex flex-col justify-center items-center shadow-sm ${gender === 'male' ? 'bg-blue-50/50 border-blue-100' : 'bg-pink-50/50 border-pink-100'}`}>
                         <span className={`text-xs font-semibold uppercase tracking-wider mb-1 ${gender === 'male' ? 'text-blue-600' : 'text-pink-600'}`}>Tuổi tính toán</span>
                         <span className={`text-xl font-bold ${gender === 'male' ? 'text-blue-900' : 'text-pink-900'}`}>
                           {finalAge.years !== '' ? `${finalAge.years} tuổi ${finalAge.months} tháng` : '--'}
@@ -304,14 +340,14 @@ export default function App() {
             </div>
 
             {/* NHÂN TRẮC HỌC */}
-            <div className="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200/60">
-              <h3 className="text-md font-semibold text-gray-800 mb-4">Nhân trắc học</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <InputGroup label="Chiều cao" value={height} onValueChange={setHeight} unit="cm" />
-                <InputGroup label="Cân nặng" value={weight} onValueChange={setWeight} unit="kg" />
+            <div className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-gray-200/60">
+              <h3 className="text-md font-semibold text-gray-800 mb-3">Nhân trắc học</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <InputGroup label="Chiều cao" value={height} onValueChange={setHeight} unit="cm" disabled={isLocked} />
+                <InputGroup label="Cân nặng" value={weight} onValueChange={setWeight} unit="kg" disabled={isLocked} />
                 
-                <div className="flex flex-col mb-4">
-                  <label className="mb-1 text-sm font-medium text-gray-700">BMI Z-score</label>
+                <div className="flex flex-col mb-3">
+                  <label className="mb-1 text-xs font-semibold text-gray-700">BMI Z-score</label>
                   <div className="flex items-center">
                     <input
                       type="text"
@@ -324,7 +360,8 @@ export default function App() {
                         }
                       }}
                       placeholder="Nhập Z-score..."
-                      className={`flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:${ringColor} shadow-sm transition-shadow ${calculatedBmiZ !== null ? 'bg-gray-50 text-gray-500' : ''}`}
+                      disabled={isLocked}
+                      className={`flex-1 px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:${ringColor} shadow-sm transition-shadow text-sm ${calculatedBmiZ !== null ? 'bg-gray-50 text-gray-500' : ''} ${isLocked ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''}`}
                       readOnly={calculatedBmiZ !== null}
                     />
                   </div>
@@ -334,27 +371,29 @@ export default function App() {
                     </span>
                   )}
                 </div>
-                <InputGroup label="Vòng eo" value={waist} onValueChange={setWaist} unit="cm" />
+                <InputGroup label="Vòng eo" value={waist} onValueChange={setWaist} unit="cm" disabled={isLocked} />
                 
-                <div className="flex flex-col mb-4">
-                  <label className="mb-1 text-sm font-medium text-gray-700">Giai đoạn Tanner</label>
+                <div className="flex flex-col mb-3">
+                  <label className="mb-1 text-xs font-semibold text-gray-700">Giai đoạn Tanner</label>
                   <select
                     value={tanner}
                     onChange={e => setTanner(e.target.value as 'prepubertal' | 'pubertal')}
-                    className={`px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:${ringColor} shadow-sm`}
+                    disabled={isLocked}
+                    className={`px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:${ringColor} shadow-sm text-sm ${isLocked ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''}`}
                   >
                     <option value="prepubertal">Trước dậy thì (Tanner I)</option>
                     <option value="pubertal">Đang dậy thì (Tanner II-IV)</option>
                   </select>
                 </div>
                 {gender === 'female' && (
-                  <div className="flex items-center mb-4 mt-6">
+                  <div className="flex items-center mb-3 mt-5">
                     <input
                       type="checkbox"
                       id="menstrual"
                       checked={menstrual}
                       onChange={e => setMenstrual(e.target.checked)}
-                      className={`w-4 h-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500`}
+                      disabled={isLocked}
+                      className={`w-4 h-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500 ${isLocked ? 'cursor-not-allowed' : ''}`}
                     />
                     <label htmlFor="menstrual" className="ml-2 text-sm font-medium text-gray-700">Rối loạn kinh nguyệt</label>
                   </div>
@@ -363,10 +402,10 @@ export default function App() {
             </div>
 
             {/* XÉT NGHIỆM */}
-            <div className="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200/60">
-              <h3 className="text-md font-semibold text-gray-800 mb-4">Xét nghiệm</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <InputGroup label="Fasting Insulin (FI)" value={fi} onValueChange={setFi} unit="µU/mL" />
+            <div className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-gray-200/60">
+              <h3 className="text-md font-semibold text-gray-800 mb-3">Xét nghiệm</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <InputGroup label="Fasting Insulin (FI)" value={fi} onValueChange={setFi} unit="µU/mL" disabled={isLocked} />
                 <InputGroup
                   label="Fasting Glucose (FG)"
                   value={fg}
@@ -374,6 +413,7 @@ export default function App() {
                   unitOptions={['mmol/L', 'mg/dL']}
                   currentUnit={fgUnit}
                   onUnitToggle={() => setFgUnit(prev => prev === 'mmol/L' ? 'mg/dL' : 'mmol/L')}
+                  disabled={isLocked}
                 />
                 <InputGroup
                   label="HbA1c"
@@ -382,9 +422,10 @@ export default function App() {
                   unitOptions={['%', 'mmol/mol']}
                   currentUnit={hba1cUnit}
                   onUnitToggle={() => setHba1cUnit(prev => prev === '%' ? 'mmol/mol' : '%')}
+                  disabled={isLocked}
                 />
-                <InputGroup label="ALT" value={alt} onValueChange={setAlt} unit="U/L" />
-                <InputGroup label="AST" value={ast} onValueChange={setAst} unit="U/L" />
+                <InputGroup label="ALT" value={alt} onValueChange={setAlt} unit="U/L" disabled={isLocked} />
+                <InputGroup label="AST" value={ast} onValueChange={setAst} unit="U/L" disabled={isLocked} />
                 
                 <InputGroup
                   label="Triglyceride (TG)"
@@ -393,26 +434,27 @@ export default function App() {
                   unitOptions={['mmol/L', 'mg/dL']}
                   currentUnit={lipidUnit}
                   onUnitToggle={() => setLipidUnit(prev => prev === 'mmol/L' ? 'mg/dL' : 'mmol/L')}
+                  disabled={isLocked}
                 />
-                <InputGroup label="HDL-C" value={hdl} onValueChange={setHdl} unit={lipidUnit} />
-                <InputGroup label="Cholesterol TP (TC)" value={tc} onValueChange={setTc} unit={lipidUnit} />
-                <InputGroup label="LDL-C" value={ldl} onValueChange={setLdl} unit={lipidUnit} />
+                <InputGroup label="HDL-C" value={hdl} onValueChange={setHdl} unit={lipidUnit} disabled={isLocked} />
+                <InputGroup label="Cholesterol TP (TC)" value={tc} onValueChange={setTc} unit={lipidUnit} disabled={isLocked} />
+                <InputGroup label="LDL-C" value={ldl} onValueChange={setLdl} unit={lipidUnit} disabled={isLocked} />
 
-                {showEndocrineInputs && (
+                {gender === 'female' && (
                   <>
-                    <InputGroup label="LH" value={lh} onValueChange={setLh} unit="IU/L" />
-                    <InputGroup label="FSH" value={fsh} onValueChange={setFsh} unit="IU/L" />
+                    <InputGroup label="LH" value={lh} onValueChange={setLh} unit="IU/L" disabled={isLocked} />
+                    <InputGroup label="FSH" value={fsh} onValueChange={setFsh} unit="IU/L" disabled={isLocked} />
                   </>
                 )}
               </div>
             </div>
 
             {/* HUYẾT ÁP */}
-            <div className="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200/60">
-              <h3 className="text-md font-semibold text-gray-800 mb-4">Huyết áp</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <InputGroup label="Tâm thu (SBP)" value={sbp} onValueChange={setSbp} unit="mmHg" />
-                <InputGroup label="Tâm trương (DBP)" value={dbp} onValueChange={setDbp} unit="mmHg" />
+            <div className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-gray-200/60">
+              <h3 className="text-md font-semibold text-gray-800 mb-3">Huyết áp</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <InputGroup label="Tâm thu (SBP)" value={sbp} onValueChange={setSbp} unit="mmHg" disabled={isLocked} />
+                <InputGroup label="Tâm trương (DBP)" value={dbp} onValueChange={setDbp} unit="mmHg" disabled={isLocked} />
               </div>
             </div>
           </div>
@@ -546,10 +588,10 @@ export default function App() {
                   <ResultCard
                     title="Nội tiết (LH/FSH)"
                     value={lhFsh}
-                    status={endocrineStatus?.status}
-                    statusColor={endocrineStatus?.color}
-                    description={endocrineStatus?.desc}
-                    trend={endocrineStatus?.status !== 'Bình thường' ? 'up' : 'neutral'}
+                    status={Number(lhFsh) > 0.3 ? 'Nghi ngờ PCOS' : 'Bình thường'}
+                    statusColor={Number(lhFsh) > 0.3 ? 'text-red-600' : 'text-green-600'}
+                    description={Number(lhFsh) > 0.3 ? '> 0.3: Gợi ý HC buồng trứng đa nang' : ''}
+                    trend={Number(lhFsh) > 0.3 ? 'up' : 'neutral'}
                   />
                 </div>
               )}
@@ -566,29 +608,29 @@ export default function App() {
                 </div>
               )}
 
-              <div className="mt-8">
+              <div className="mt-6">
                 <label className="block mb-2 text-sm font-semibold text-gray-700">Bác sĩ đánh giá:</label>
                 <textarea
                   value={doctorNote}
                   onChange={e => setDoctorNote(e.target.value)}
                   placeholder="Tình trạng hiện tại..."
-                  className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:${ringColor} min-h-[100px]`}
+                  className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:${ringColor} min-h-[80px] text-sm`}
                 />
               </div>
             </div>
 
             {/* CONCLUSION BOX */}
-            <div className="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200/60">
-              <div className="flex justify-between items-center mb-4">
+            <div className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-gray-200/60">
+              <div className="flex justify-between items-center mb-3">
                 <h2 className={`text-lg font-semibold ${accentColor}`}>Kết luận tổng quát</h2>
                 <button
                   onClick={copyToClipboard}
-                  className={`flex items-center gap-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors shadow-sm`}
+                  className={`flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors shadow-sm`}
                 >
                   <Copy className="w-4 h-4" /> Copy
                 </button>
               </div>
-              <pre className="whitespace-pre-wrap text-sm text-gray-800 bg-gray-50/50 p-5 rounded-xl border border-gray-200/60 font-sans leading-relaxed">
+              <pre className="whitespace-pre-wrap text-sm text-gray-800 bg-gray-50/50 p-4 rounded-xl border border-gray-200/60 font-sans leading-relaxed">
                 {generateConclusion()}
               </pre>
             </div>

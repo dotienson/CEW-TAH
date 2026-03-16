@@ -12,6 +12,7 @@ interface InputGroupProps {
   unitOptions?: string[];
   currentUnit?: string;
   step?: string;
+  disabled?: boolean;
 }
 
 export const InputGroup: React.FC<InputGroupProps> = ({
@@ -25,7 +26,8 @@ export const InputGroup: React.FC<InputGroupProps> = ({
   onUnitToggle,
   unitOptions,
   currentUnit,
-  step = 'any'
+  step = 'any',
+  disabled = false
 }) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (onValueChange) {
@@ -39,8 +41,8 @@ export const InputGroup: React.FC<InputGroupProps> = ({
   };
 
   return (
-    <div className="flex flex-col mb-4">
-      <label className="mb-1 text-sm font-medium text-gray-700">{label}</label>
+    <div className="flex flex-col mb-3">
+      <label className="mb-1 text-xs font-semibold text-gray-700">{label}</label>
       <div className="flex items-center">
         <input
           type={type}
@@ -49,17 +51,19 @@ export const InputGroup: React.FC<InputGroupProps> = ({
           onChange={handleChange}
           placeholder={placeholder}
           step={step}
-          className="flex-1 px-3 py-2 border border-gray-200 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm transition-shadow"
+          disabled={disabled}
+          className={`flex-1 px-3 py-1.5 border border-gray-200 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm transition-shadow text-sm ${disabled ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''}`}
         />
         {unit && !onUnitToggle && (
-          <span className="px-3 py-2 bg-gray-50 border border-l-0 border-gray-200 rounded-r-lg text-gray-500 text-sm shadow-sm">
+          <span className="px-3 py-1.5 bg-gray-50 border border-l-0 border-gray-200 rounded-r-lg text-gray-500 text-sm shadow-sm">
             {unit}
           </span>
         )}
         {onUnitToggle && unitOptions && currentUnit && (
           <button
             onClick={onUnitToggle}
-            className="px-3 py-2 bg-gray-100 hover:bg-gray-200 border border-l-0 border-gray-200 rounded-r-lg text-gray-700 text-sm font-medium transition-colors shadow-sm"
+            disabled={disabled}
+            className={`px-3 py-1.5 bg-gray-100 hover:bg-gray-200 border border-l-0 border-gray-200 rounded-r-lg text-gray-700 text-sm font-medium transition-colors shadow-sm ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             {currentUnit}
           </button>
