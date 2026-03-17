@@ -18,6 +18,8 @@ import { Copy, ChevronDown, ChevronUp, Info, TrendingUp, TrendingDown, Minus } f
 
 export default function App() {
   const [gender, setGender] = useState<'male' | 'female'>('male');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loginCode, setLoginCode] = useState('');
   const [dobD, setDobD] = useState('');
   const [dobM, setDobM] = useState('');
   const [dobY, setDobY] = useState('');
@@ -270,16 +272,45 @@ export default function App() {
     alert('Đã copy kết luận!');
   };
 
-  const bgColor = gender === 'male' ? 'bg-[#D0D9E4]' : 'bg-[#FCE4EC]';
-  const accentColor = gender === 'male' ? 'text-blue-600' : 'text-pink-600';
-  const ringColor = gender === 'male' ? 'ring-blue-500' : 'ring-pink-500';
+  const bgColor = gender === 'male' ? 'bg-[#B2DFDB]' : 'bg-[#FCE4EC]';
+  const accentColor = gender === 'male' ? 'text-teal-800' : 'text-pink-600';
+  const ringColor = gender === 'male' ? 'ring-teal-700' : 'ring-pink-500';
+
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+        <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-200 w-full max-w-sm text-center">
+          <h1 className="text-2xl font-bold text-gray-800 mb-6">Đăng nhập</h1>
+          <input
+            type="password"
+            value={loginCode}
+            onChange={e => setLoginCode(e.target.value)}
+            placeholder="Nhập mã truy cập..."
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-teal-500"
+          />
+          <button
+            onClick={() => {
+              if (loginCode.endsWith('0')) {
+                setIsLoggedIn(true);
+              } else {
+                alert('Mã không hợp lệ!');
+              }
+            }}
+            className="w-full py-2 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 transition-colors"
+          >
+            Truy cập
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen ${bgColor} p-2 md:p-6 font-sans antialiased transition-colors duration-300`}>
       <div className="max-w-7xl mx-auto">
         <header className="mb-6 text-center">
-          <h1 className={`text-2xl md:text-3xl font-bold ${accentColor} mb-1 tracking-tight`}>ỨNG DỤNG TAH KSCN 1.0</h1>
-          <p className="text-gray-500 text-sm font-medium">ThS. BS. Đỗ Tiến Sơn</p>
+          <h1 className={`text-2xl md:text-3xl font-bold ${accentColor} mb-1 tracking-tight`}>CEW-Screen Dr.Sơn</h1>
+          <p className="text-gray-600 text-sm font-medium">ThS. BS. Đỗ Tiến Sơn © 2026</p>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -718,7 +749,8 @@ export default function App() {
         </div>
 
         {/* FOOTER & REFERENCES */}
-        <footer className="mt-12 mb-8">
+        <footer className="mt-12 mb-8 text-center">
+          <p className="text-gray-600 text-sm font-medium mb-4">Bản quyền thuộc về ThS. BS. Đỗ Tiến Sơn</p>
           <button
             onClick={() => setShowRefs(!showRefs)}
             className="flex items-center gap-2 text-gray-500 hover:text-gray-700 font-medium mx-auto"
