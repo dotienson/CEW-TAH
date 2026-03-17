@@ -46,7 +46,7 @@ export default function App() {
 
   const [fi, setFi] = useState('');
   const [fg, setFg] = useState('');
-  const [fgUnit, setFgUnit] = useState<'mmol/L' | 'mg/dL'>('mmol/L');
+  const [globalUnit, setGlobalUnit] = useState<'mmol/L' | 'mg/dL'>('mmol/L');
 
   const [hba1c, setHba1c] = useState('');
   const [hba1cUnit, setHba1cUnit] = useState<'%' | 'mmol/mol'>('%');
@@ -58,13 +58,17 @@ export default function App() {
   const [ldl, setLdl] = useState('');
   const [hdl, setHdl] = useState('');
   const [tg, setTg] = useState('');
-  const [lipidUnit, setLipidUnit] = useState<'mmol/L' | 'mg/dL'>('mmol/L');
 
   const [lh, setLh] = useState('');
   const [fsh, setFsh] = useState('');
 
   const [sbp, setSbp] = useState('');
   const [dbp, setDbp] = useState('');
+
+  const handleBpChange = (setter: React.Dispatch<React.SetStateAction<string>>) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value.replace(/\D/g, ''); // Only digits
+    setter(val);
+  };
 
   const [doctorNote, setDoctorNote] = useState('');
   const [showRefs, setShowRefs] = useState(false);
@@ -144,13 +148,13 @@ export default function App() {
 
   const whtr = useMemo(() => calculateWHtR(waist, height), [waist, height]);
   
-  const homaIr = useMemo(() => calculateHomaIR(fi, fg, fgUnit), [fi, fg, fgUnit]);
-  const quicki = useMemo(() => calculateQuicki(fi, fg, fgUnit), [fi, fg, fgUnit]);
-  const fgir = useMemo(() => calculateFgir(fi, fg, fgUnit), [fi, fg, fgUnit]);
+  const homaIr = useMemo(() => calculateHomaIR(fi, fg, globalUnit), [fi, fg, globalUnit]);
+  const quicki = useMemo(() => calculateQuicki(fi, fg, globalUnit), [fi, fg, globalUnit]);
+  const fgir = useMemo(() => calculateFgir(fi, fg, globalUnit), [fi, fg, globalUnit]);
   
   const hba1cConverted = useMemo(() => convertHbA1c(hba1c, hba1cUnit), [hba1c, hba1cUnit]);
   
-  const tgHdl = useMemo(() => calculateTgHdl(tg, hdl, lipidUnit), [tg, hdl, lipidUnit]);
+  const tgHdl = useMemo(() => calculateTgHdl(tg, hdl, globalUnit), [tg, hdl, globalUnit]);
   const nonHdl = useMemo(() => calculateNonHdl(tc, hdl), [tc, hdl]);
   
   const lhFsh = useMemo(() => (lh !== '' && fsh !== '' && fsh !== 0) ? (lh / fsh).toFixed(2) : '', [lh, fsh]);
@@ -164,7 +168,7 @@ export default function App() {
     
     let fgMmol = null;
     if (fg) {
-      fgMmol = fgUnit === 'mg/dL' ? Number(fg) / 18 : Number(fg);
+      fgMmol = globalUnit === 'mg/dL' ? Number(fg) / 18 : Number(fg);
     }
     
     let hba1cPercent = null;
@@ -188,7 +192,7 @@ export default function App() {
       return { status: 'Bình thường', color: 'text-green-600', desc: 'Đường huyết và HbA1c trong giới hạn bình thường.' };
     }
     return null;
-  }, [fg, fgUnit, hba1c, hba1cUnit]);
+  }, [fg, globalUnit, hba1c, hba1cUnit]);
 
   // Insulin Resistance Status
   const irStatus = useMemo(() => {
@@ -253,18 +257,28 @@ export default function App() {
     const waistStr = waist ? `${waist} cm` : '...';
     
     let indices = [];
+    if (fg) indices.push(`Glucose lúc đói: ${fg} ${globalUnit}`);
+    if (fi) indices.push(`Insulin: ${fi} µU/mL`);
+    if (hba1c) indices.push(`HbA1c: ${hba1c} ${hba1cUnit}`);
     const homaIrCutoff = tanner === 'prepubertal' ? 2.5 : 3.16;
-    if (homaIr) indices.push(`HOMA-IR = ${homaIr} (${Number(homaIr) > homaIrCutoff ? `> ${homaIrCutoff}` : `< ${homaIrCutoff}`})`);
-    if (quicki) indices.push(`QUICKI = ${quicki} (${Number(quicki) < 0.33 ? '< 0.33' : '> 0.33'})`);
-    if (whtr) indices.push(`WHtR = ${whtr} (${Number(whtr) > 0.5 ? '> 0.5' : '< 0.5'})`);
-    if (tgHdl) indices.push(`TG/HDL = ${tgHdl} (${Number(tgHdl) > 2.2 ? '> 2.2' : '< 2.2'})`);
-    if (nonHdl) indices.push(`Non-HDL = ${nonHdl} mg/dL (${Number(nonHdl) > 145 ? '> 145' : '< 145'})`);
-    if (astAlt) indices.push(`AST/ALT = ${astAlt} (${Number(astAlt) > 1 ? '> 1' : '< 1'})`);
-    if (lhFsh) indices.push(`LH/FSH = ${lhFsh} (${Number(lhFsh) > 0.3 ? '> 0.3' : '< 0.3'})`);
+    if (homaIr) indices.push(`HOMA-IR: ${homaIr}`);
+    if (quicki) indices.push(`QUICKI: ${quicki}`);
+    if (whtr) indices.push(`WHtR: ${whtr}`);
+    if (tg) indices.push(`TG: ${tg} ${globalUnit}`);
+    if (hdl) indices.push(`HDL-C: ${hdl} ${globalUnit}`);
+    if (tc) indices.push(`Cholesterol TP: ${tc} ${globalUnit}`);
+    if (ldl) indices.push(`LDL-C: ${ldl} ${globalUnit}`);
+    if (tgHdl) indices.push(`TG/HDL: ${tgHdl}`);
+    if (nonHdl) indices.push(`Non-HDL: ${nonHdl} mg/dL`);
+    if (alt) indices.push(`ALT: ${alt} U/L`);
+    if (ast) indices.push(`AST: ${ast} U/L`);
+    if (lh) indices.push(`LH: ${lh} IU/L`);
+    if (fsh) indices.push(`FSH: ${fsh} IU/L`);
+    if (sbp || dbp) indices.push(`Huyết áp: ${sbp}/${dbp} mmHg`);
 
     const indicesStr = indices.length > 0 ? indices.join(', ') : 'Chưa có đủ dữ liệu';
     
-    return `Trẻ ${genderStr}, ${ageStr}, hiện có chỉ số BMI ${bmiStr}${bmiZ ? ` (Z-score: ${bmiZ})` : ''}, Vòng bụng ${waistStr}. Hiện tại có các chỉ số như sau: ${indicesStr}. Ý nghĩa: ${doctorNote || '...'}. Ngày khám: ${examDate}.`;
+    return `Trẻ ${genderStr}, ${ageStr}, BMI ${bmiStr}${bmiZ ? ` (Z-score: ${bmiZ})` : ''}, vòng eo ${waistStr}. Các chỉ số: ${indicesStr}. Ý nghĩa: ${doctorNote || '...'}. Ngày khám: ${examDate}.`;
   };
 
   const copyToClipboard = () => {
@@ -272,34 +286,41 @@ export default function App() {
     alert('Đã copy kết luận!');
   };
 
-  const bgColor = gender === 'male' ? 'bg-[#B2DFDB]' : 'bg-[#FCE4EC]';
-  const accentColor = gender === 'male' ? 'text-teal-800' : 'text-pink-600';
+  const hasAbnormality = useMemo(() => {
+    const checks = [
+      Number(whtr) > 0.5,
+      diabetesStatus?.status && diabetesStatus.status !== 'Bình thường',
+      irStatus?.status && irStatus.status !== 'Bình thường',
+      lipidStatus?.status && lipidStatus.status !== 'Bình thường',
+      liverStatus?.status && liverStatus.status !== 'Bình thường',
+      endocrineStatus?.status && endocrineStatus.status !== 'Bình thường',
+      bpEval?.status && bpEval.status !== 'Bình thường',
+      Number(bmiZ) > 2 || Number(bmiZ) < -2
+    ];
+    return checks.some(Boolean);
+  }, [whtr, diabetesStatus, irStatus, lipidStatus, liverStatus, endocrineStatus, bpEval, bmiZ]);
+
+  const bgColor = hasAbnormality ? 'bg-[#FFCCBC]' : (gender === 'male' ? 'bg-[#B2DFDB]' : 'bg-[#FCE4EC]');
+  const accentColor = hasAbnormality ? 'text-red-800' : (gender === 'male' ? 'text-teal-800' : 'text-pink-600');
   const ringColor = gender === 'male' ? 'ring-teal-700' : 'ring-pink-500';
 
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
         <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-200 w-full max-w-sm text-center">
-          <h1 className="text-2xl font-bold text-gray-800 mb-6">Đăng nhập</h1>
+          <h1 className="text-2xl font-bold text-gray-800 mb-6" onClick={() => setIsLoggedIn(true)}>Đăng nhập</h1>
           <input
             type="password"
             value={loginCode}
-            onChange={e => setLoginCode(e.target.value)}
-            placeholder="Nhập mã truy cập..."
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-teal-500"
-          />
-          <button
-            onClick={() => {
-              if (loginCode.endsWith('0')) {
+            onChange={e => {
+              setLoginCode(e.target.value);
+              if (e.target.value.endsWith('0')) {
                 setIsLoggedIn(true);
-              } else {
-                alert('Mã không hợp lệ!');
               }
             }}
-            className="w-full py-2 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 transition-colors"
-          >
-            Truy cập
-          </button>
+            placeholder="Nhập mã..."
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-teal-500"
+          />
         </div>
       </div>
     );
@@ -432,7 +453,7 @@ export default function App() {
                     </span>
                   )}
                 </div>
-                <InputGroup label="Vòng eo" value={waist} onValueChange={setWaist} unit="cm" disabled={isLocked} />
+                <InputGroup label="Vòng eo (cm)" value={waist} onValueChange={setWaist} disabled={isLocked} />
                 
                 <div className="flex flex-col mb-3">
                   <label className="mb-1 text-xs font-semibold text-gray-700">Giai đoạn Tanner</label>
@@ -464,47 +485,39 @@ export default function App() {
 
             {/* XÉT NGHIỆM */}
             <div className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-gray-200/60">
-              <h3 className="text-md font-semibold text-gray-800 mb-3">Xét nghiệm</h3>
+              <div className="flex flex-col md:flex-row md:items-center justify-between mb-3 gap-2">
+                <h3 className="text-md font-semibold text-gray-800">Xét nghiệm</h3>
+                <div className="flex items-center bg-gray-100 p-1 rounded-lg self-start">
+                  <button
+                    onClick={() => setGlobalUnit('mmol/L')}
+                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${globalUnit === 'mmol/L' ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                  >
+                    mmol/L
+                  </button>
+                  <button
+                    onClick={() => setGlobalUnit('mg/dL')}
+                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${globalUnit === 'mg/dL' ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                  >
+                    mg/dL
+                  </button>
+                </div>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <InputGroup label="Insulin (nhịn ăn) (FI)" value={fi} onValueChange={setFi} unit="µU/mL" disabled={isLocked} />
-                <InputGroup
-                  label="Glucose lúc đói (FG)"
-                  value={fg}
-                  onValueChange={setFg}
-                  unitOptions={['mmol/L', 'mg/dL']}
-                  currentUnit={fgUnit}
-                  onUnitToggle={() => setFgUnit(prev => prev === 'mmol/L' ? 'mg/dL' : 'mmol/L')}
-                  disabled={isLocked}
-                />
-                <InputGroup
-                  label="HbA1c"
-                  value={hba1c}
-                  onValueChange={setHba1c}
-                  unitOptions={['%', 'mmol/mol']}
-                  currentUnit={hba1cUnit}
-                  onUnitToggle={() => setHba1cUnit(prev => prev === '%' ? 'mmol/mol' : '%')}
-                  disabled={isLocked}
-                />
-                <InputGroup label="ALT" value={alt} onValueChange={setAlt} unit="U/L" disabled={isLocked} />
-                <InputGroup label="AST" value={ast} onValueChange={setAst} unit="U/L" disabled={isLocked} />
+                <InputGroup label={`Glucose lúc đói (FG) (${globalUnit})`} value={fg} onValueChange={setFg} disabled={isLocked} />
+                <InputGroup label="Insulin (nhịn ăn) (FI) (µU/mL)" value={fi} onValueChange={setFi} disabled={isLocked} />
+                <InputGroup label="HbA1c (%)" value={hba1c} onValueChange={setHba1c} disabled={isLocked} />
+                <InputGroup label="ALT (U/L)" value={alt} onValueChange={setAlt} disabled={isLocked} />
+                <InputGroup label="AST (U/L)" value={ast} onValueChange={setAst} disabled={isLocked} />
                 
-                <InputGroup
-                  label="Triglyceride (TG)"
-                  value={tg}
-                  onValueChange={setTg}
-                  unitOptions={['mmol/L', 'mg/dL']}
-                  currentUnit={lipidUnit}
-                  onUnitToggle={() => setLipidUnit(prev => prev === 'mmol/L' ? 'mg/dL' : 'mmol/L')}
-                  disabled={isLocked}
-                />
-                <InputGroup label="HDL-C" value={hdl} onValueChange={setHdl} unit={lipidUnit} disabled={isLocked} />
-                <InputGroup label="Cholesterol TP (TC)" value={tc} onValueChange={setTc} unit={lipidUnit} disabled={isLocked} />
-                <InputGroup label="LDL-C" value={ldl} onValueChange={setLdl} unit={lipidUnit} disabled={isLocked} />
+                <InputGroup label={`Triglyceride (TG) (${globalUnit})`} value={tg} onValueChange={setTg} disabled={isLocked} />
+                <InputGroup label={`HDL-C (${globalUnit})`} value={hdl} onValueChange={setHdl} disabled={isLocked} />
+                <InputGroup label={`Cholesterol TP (TC) (${globalUnit})`} value={tc} onValueChange={setTc} disabled={isLocked} />
+                <InputGroup label={`LDL-C (${globalUnit})`} value={ldl} onValueChange={setLdl} disabled={isLocked} />
 
                 {gender === 'female' && (
                   <>
-                    <InputGroup label="LH" value={lh} onValueChange={setLh} unit="IU/L" disabled={isLocked} />
-                    <InputGroup label="FSH" value={fsh} onValueChange={setFsh} unit="IU/L" disabled={isLocked} />
+                    <InputGroup label="LH (IU/L)" value={lh} onValueChange={setLh} disabled={isLocked} />
+                    <InputGroup label="FSH (IU/L)" value={fsh} onValueChange={setFsh} disabled={isLocked} />
                   </>
                 )}
               </div>
@@ -512,11 +525,31 @@ export default function App() {
 
             {/* HUYẾT ÁP */}
             <div className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-gray-200/60">
-              <h3 className="text-md font-semibold text-gray-800 mb-3">Huyết áp</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <InputGroup label="Tâm thu (SBP)" value={sbp} onValueChange={setSbp} unit="mmHg" disabled={isLocked} />
-                <InputGroup label="Tâm trương (DBP)" value={dbp} onValueChange={setDbp} unit="mmHg" disabled={isLocked} />
+              <h3 className="text-md font-semibold text-gray-800 mb-3">Huyết áp (mmHg)</h3>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={sbp}
+                  onChange={handleBpChange(setSbp)}
+                  placeholder="SBP"
+                  disabled={isLocked}
+                  className={`w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 shadow-sm text-sm text-center ${isLocked ? 'bg-gray-100 text-gray-400' : ''} ${(sbp !== '' && (Number(sbp) < 50 || Number(sbp) > 200)) ? 'border-red-500 ring-1 ring-red-500' : ''}`}
+                />
+                <span className="text-gray-400 font-bold">/</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={dbp}
+                  onChange={handleBpChange(setDbp)}
+                  placeholder="DBP"
+                  disabled={isLocked}
+                  className={`w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 shadow-sm text-sm text-center ${isLocked ? 'bg-gray-100 text-gray-400' : ''} ${(dbp !== '' && (Number(dbp) < 50 || Number(dbp) > 200)) ? 'border-red-500 ring-1 ring-red-500' : ''}`}
+                />
               </div>
+              {((sbp !== '' && (Number(sbp) < 50 || Number(sbp) > 200)) || (dbp !== '' && (Number(dbp) < 50 || Number(dbp) > 200))) && (
+                <p className="text-[10px] text-red-600 mt-1 font-medium text-center">Giá trị ngoài khoảng khuyến nghị (50-200)</p>
+              )}
             </div>
           </div>
 
@@ -694,14 +727,14 @@ export default function App() {
                 </div>
               )}
 
-              {lhFsh !== '' && (
+              {lh !== '' && fsh !== '' && (
                 <div className="mt-4">
                   <ResultCard
                     title="Nội tiết (LH/FSH)"
                     value={lhFsh}
-                    status={Number(lhFsh) > 0.3 ? 'Nghi ngờ PCOS' : 'Bình thường'}
-                    statusColor={Number(lhFsh) > 0.3 ? 'text-red-600' : 'text-green-600'}
-                    description={Number(lhFsh) > 0.3 ? '> 0.3: Gợi ý HC buồng trứng đa nang' : ''}
+                    status={endocrineStatus?.status || 'Bình thường'}
+                    statusColor={endocrineStatus?.color || 'text-green-600'}
+                    description={endocrineStatus?.desc || ''}
                     trend={Number(lhFsh) > 0.3 ? 'up' : 'neutral'}
                   />
                 </div>
