@@ -92,8 +92,23 @@ export const calculateTgHdl = (tg: string | number, hdl: string | number, unit: 
 export const calculateNonHdl = (tc: string | number, hdl: string | number) => {
   const t = Number(tc);
   const h = Number(hdl);
-  if (!t || !h) return '';
-  return (t - h).toFixed(2);
+  if (!t || !h) return null;
+  return Number((t - h).toFixed(2));
+};
+
+export const evaluateNonHdl = (value: number | null, unit: string) => {
+  if (value === null) return null;
+  
+  if (unit === 'mg/dL') {
+    if (value < 120) return { status: 'nonHdlAcceptable', color: 'text-green-600' };
+    if (value < 145) return { status: 'nonHdlBorderline', color: 'text-yellow-600' };
+    return { status: 'nonHdlHigh', color: 'text-red-600' };
+  } else {
+    // mmol/L
+    if (value < 3.1) return { status: 'nonHdlAcceptable', color: 'text-green-600' };
+    if (value < 3.8) return { status: 'nonHdlBorderline', color: 'text-yellow-600' };
+    return { status: 'nonHdlHigh', color: 'text-red-600' };
+  }
 };
 
 export const evaluateBP = (sbp: string | number, dbp: string | number, ageYears: string | number, gender: 'male' | 'female') => {
@@ -103,10 +118,10 @@ export const evaluateBP = (sbp: string | number, dbp: string | number, ageYears:
   if (!s || !d || !ageYears) return null;
   
   if (age >= 13) {
-    if (s >= 140 || d >= 90) return { status: 'Stage 2', color: 'text-red-600' };
-    if ((s >= 130 && s <= 139) || (d >= 80 && d <= 89)) return { status: 'Stage 1', color: 'text-orange-600' };
-    if (s >= 120 && s <= 129 && d < 80) return { status: 'Elevated BP', color: 'text-yellow-600' };
-    return { status: 'Bình thường', color: 'text-green-600' };
+    if (s >= 140 || d >= 90) return { status: 'bpStage2', color: 'text-red-600' };
+    if ((s >= 130 && s <= 139) || (d >= 80 && d <= 89)) return { status: 'bpStage1', color: 'text-orange-600' };
+    if (s >= 120 && s <= 129 && d < 80) return { status: 'bpElevated', color: 'text-yellow-600' };
+    return { status: 'normal', color: 'text-green-600' };
   }
 
   const table = BP_TABLE[gender];
@@ -114,7 +129,7 @@ export const evaluateBP = (sbp: string | number, dbp: string | number, ageYears:
   const cutoffs = table[ageKey as keyof typeof table];
 
   if (s >= cutoffs.sbp || d >= cutoffs.dbp) {
-    return { status: 'Cần khám Tim mạch', color: 'text-red-600' };
+    return { status: 'cardioConsult', color: 'text-red-600' };
   }
-  return { status: 'Bình thường', color: 'text-green-600' };
+  return { status: 'normal', color: 'text-green-600' };
 };
